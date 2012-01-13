@@ -93,6 +93,7 @@ lunch $LUNCH
 if [ ! "$1" = "" ] ; then
 cd kernel/samsung/p1
 ./build.sh $TARGET
+cd ../../..
 fi
 
 # Android build
