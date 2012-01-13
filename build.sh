@@ -45,8 +45,8 @@ case "$DEVICE" in
 	*)
 		echo -e "${txtred}Usage: $0 device"
 		echo -e "Example: ./build.sh p1"
-		echo -e "Supported Devices: p1 p1c p1l p1n"
-		echo -e "This is needed only if you want to build kernel too ${txtrst}"
+		echo -e "Default p1"
+		echo -e "Supported Devices: p1 p1c p1l p1n${txtrst}"
 		;;
 esac
 
@@ -62,8 +62,13 @@ case "$BUILDTYPE" in
 		;;
 	*)
 		echo -e "${txtred} Choose a build type"
+		echo -e "Default : userdebug"
 		echo -e "Supported Buildtypes : eng userdebug user"
 esac
+
+if [ "$1" = "" ] ; then
+TARGET=p1
+fi
 
 if [ "$2" = "" ] ; then
 LUNCH=cm_galaxytab-userdebug
@@ -88,7 +93,6 @@ lunch $LUNCH
 if [ ! "$1" = "" ] ; then
 cd kernel/samsung/p1
 ./build.sh $TARGET
-cp boot.img ../../../out/target/product/galaxytab
 fi
 
 # Android build
