@@ -47,13 +47,6 @@ case "$DEVICE" in
 		;;
 esac
 
-# The real build starts now
-if [ ! "$1" = "" ] ; then
-make -j$THREADS ARCH=arm $DEFCONFIG
-make -j$THREADS
-fi
-
-
 # Make it into a boot.img
 # ty nubecoder for this :)
 # defines
