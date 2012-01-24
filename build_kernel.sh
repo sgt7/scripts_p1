@@ -2,6 +2,7 @@
 #
 # Script to build Galaxy Tab Kernel
 # 2012 Chirayu Desai 
+# This actually goes to kernel/samsung/p1
 
 # Common defines
 txtrst='\e[0m'  # Color off
@@ -68,6 +69,9 @@ if [ ! -d $KERNEL_INITRD_DIR ]; then
 	cd $KERNEL_DIR
 fi
 
+# .git is huge!
+mv $KERNEL_INITRD_DIR/.git DONOTLOOKATME
+
 # The real build starts now
 if [ ! "$1" = "" ] ; then
 if [ "$3" = "boot.img" ] ; then
@@ -119,6 +123,9 @@ else
 fi
 fi
 fi
+
+# move it back just in case
+mv DONOTLOOKATME $KERNEL_INITRD_DIR/.git
 
 # The end!
 END=$(date +%s)
