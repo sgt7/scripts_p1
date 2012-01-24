@@ -21,6 +21,7 @@ echo -e "\r\n ${txtrst}"
 START=$(date +%s)
 DEVICE="$1"
 BUILDTYPE="$2"
+KERNELTYPE="$3"
 THREADS=`cat /proc/cpuinfo | grep processor | wc -l`
 
 case "$DEVICE" in
@@ -63,7 +64,17 @@ case "$BUILDTYPE" in
 	*)
 		echo -e "${txtred} Choose a build type"
 		echo -e "Default : userdebug"
-		echo -e "Supported Buildtypes : eng userdebug user"
+		echo -e "Supported Buildtypes : eng userdebug user${txtrst}"
+esac
+
+case "$KERNELTYPE" in
+	boot.img)
+		BOOTIMG=boot.img
+		;;
+	*)
+		echo -e "${txtred} Choose a kernel type"
+		echo -e "Default : zImage"
+		echo -e "Supported Kernelstypes : boot.img (With 2-stage-init)${txtrst}"
 esac
 
 if [ "$1" = "" ] ; then
@@ -91,7 +102,7 @@ lunch $LUNCH
 
 # Kernel build
 cd kernel/samsung/p1
-./build.sh $TARGET
+./build.sh $TARGET $BOOTIMG
 cd ../../..
 
 # Android build
