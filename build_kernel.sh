@@ -4,123 +4,118 @@
 # 2012 Chirayu Desai 
 # This actually goes to kernel/samsung/p1
 
-# Common defines
-txtrst='\e[0m'  # Color off
-txtred='\e[0;31m' # Red
-txtgrn='\e[0;32m' # Green
-txtylw='\e[0;33m' # Yellow
-txtblu='\e[0;34m' # Blue
-
-echo -e "${txtblu}##########################################"
-echo -e "${txtblu}#                                        #"
-echo -e "${txtblu}#      GALAXYTAB KERNEL BUILDSCRIPT      #"
-echo -e "${txtblu}#                                        #"
-echo -e "${txtblu}##########################################"
-echo -e "\r\n ${txtrst}"
-
-# Starting Timer
-START=$(date +%s)
-DEVICE="$1"
-THREADS=`cat /proc/cpuinfo | grep processor | wc -l`
-
-case "$DEVICE" in
-	clean)
-		make clean
-		exit
-		;;
-	p1|P1)
-		DEFCONFIG=p1_cm9_defconfig
-		;;
-	p1c|P1C)
-		DEFCONFIG=p1c_cm9_defconfig
-		;;
-	p1l|P1L)
-		DEFCONFIG=p1l_cm9_defconfig
-		;;
-	p1n|P1N)
-		DEFCONFIG=p1n_cm9_defconfig
-		;;
-	*)
-		echo -e "${txtred}Usage: $0 device"
-		echo -e "Example: ./build.sh p1"
-		echo -e "Supported Devices: p1 p1c p1l p1n ${txtrst}"
-		;;
-esac
-
-# Make it into a boot.img
-# ty nubecoder for this :)
-# defines
-KERNEL_DIR=`pwd`
-KERNEL_PATH="./arch/arm/boot/zImage"
-KERNEL_INITRD_DIR="../initramfs"
-KERNEL_INITRD_GIT="https://github.com/sgt7/p1000-initramfs-cm9.git"
-
-# Check if initramfs is present, if not, then clone it
-if [ ! -d $KERNEL_INITRD_DIR ]; then
-	cd ..
-	git clone $KERNEL_INITRD_GIT initramfs
-	cd $KERNEL_DIR
-fi
-
-# .git is huge!
-mv $KERNEL_INITRD_DIR/.git DONOTLOOKATME
-
-# The real build starts now
-if [ ! "$1" = "" ] ; then
-if [ "$3" = "boot.img" ] ; then
-sed -i "s|CONFIG_INITRAMFS_SOURCE="../initramfs"|CONFIG_INITRAMFS_SOURCE="usr/galaxytab_initramfs.list"|" arch/arm/configs/$DEFCONFIG
-else
-INITSOURCE=`grep CONFIG_INITRAMFS_SOURCE arch/arm/configs/$DEFCONFIG `
-if [ ! "$INITSOURCE" = "CONFIG_INITRAMFS_SOURCE="../initramfs"" ]; then
-sed -i "s|CONFIG_INITRAMFS_SOURCE="usr/galaxytab_initramfs.list"|CONFIG_INITRAMFS_SOURCE="../initramfs"|" arch/arm/configs/$DEFCONFIG
-fi
-fi
-make -j$THREADS ARCH=arm $DEFCONFIG
-make -j$THREADS
-fi
-
-# Function
-function PACKAGE_BOOTIMG()
+setup ()
 {
-	if [ "$1" = "" ] || [ "$2" = "" ] ; then
+    if [ x = "x$ANDROID_BUILD_TOP" ] ; then
+        echo "Android build environment must be configured"
+        exit 1
+    fi
+    . "$ANDROID_BUILD_TOP"/build/envsetup.sh
+
+    KERNEL_DIR="$(dirname "$(readlink -f "$0")")"
+    BUILD_DIR="$KERNEL_DIR/build"
+    MODULES=("fs/cifs/cifs.ko" "fs/fuse/fuse.ko" "fs/nls/nls_utf8.ko")
+
+    if [ x = "x$NO_CCACHE" ] && ccache -V &>/dev/null ; then
+        CCACHE=ccache
+        CCACHE_BASEDIR="$KERNEL_DIR"
+        CCACHE_COMPRESS=1
+        CCACHE_DIR="$BUILD_DIR/.ccache"
+        export CCACHE_DIR CCACHE_COMPRESS CCACHE_BASEDIR
+    else
+        CCACHE=""
+    fi
+
+    CROSS_PREFIX="$ANDROID_BUILD_TOP/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-"
+}
+
+build ()
+{
+    local target=$1
+    echo "Building for $target"
+    local target_dir="$BUILD_DIR/$target"
+    local module
+    rm -fr "$target_dir"
+    mkdir -p "$target_dir/usr"
+    cp "$KERNEL_DIR/usr/"*.list "$target_dir/usr"
+    sed "s|usr/|$KERNEL_DIR/usr/|g" -i "$target_dir/usr/"*.list
+    mka -C "$KERNEL_DIR" O="$target_dir" ${target}_cm9_defconfig HOSTCC="$CCACHE gcc"
+    mka -C "$KERNEL_DIR" O="$target_dir" HOSTCC="$CCACHE gcc" CROSS_COMPILE="$CCACHE $CROSS_PREFIX" zImage modules
+    # cp "$target_dir"/arch/arm/boot/zImage $ANDROID_BUILD_TOP/device/samsung/galaxytab/kernel-$target
+    for module in "${MODULES[@]}" ; do
+        cp "$target_dir/$module" $ANDROID_BUILD_TOP/device/samsung/galaxytab/modules
+    done
+}
+    
+setup
+
+if [ "$1" = clean ] ; then
+    rm -fr "$BUILD_DIR"/*
+    exit 0
+fi
+
+P1_target=$1
+targets=("$@")
+if [ 0 = "${#targets[@]}" ] ; then
+    targets=($P1_target)
+fi
+
+START=$(date +%s)
+
+for target in "${targets[@]}" ; do 
+    build $target
+done
+
+# Boot.img 
+KERNEL_DIR="$(dirname "$(readlink -f "$0")")"
+KERNEL_PATHS="$target_dir/arch/arm/boot/zImage"
+RECOVERY_INITRD=$ANDROID_BUILD_TOP/out/target/product/galaxytab/recovery/root
+KERNEL_INITRD=$ANDROID_BUILD_TOP/out/target/product/galaxytab/root
+
+PACKAGE_BOOTIMG()
+{
+	if [ "$1" = "" ] || [ "$2" = "" ]  || [ "$3" = "" ] ; then
 		ERROR_MSG="Error: PACKAGE_BOOTIMG - Missing args!"
-		return 2
+		return 1
 	fi
 	if [ ! -f "$1" ] ; then
 		ERROR_MSG="Error: PACKAGE_BOOTIMG - zImage does not exist!"
-		return 1
+		return 2
 	else
-		echo -e "${txtblu} Creating ramdisk.img"
-		./tools/mkbootfs $KERNEL_INITRD_DIR | ./tools/minigzip > ramdisk.img
+		local KERNEL_INITRD="$2"
+		local RECOVERY_INITRD="$3"
+		echo "Creating ramdisk.img"
+		mkbootfs $KERNEL_INITRD | minigzip > ramdisk-kernel.img
+		echo "Creating ramdisk-recovery.img"
+		mkbootfs $RECOVERY_INITRD > ramdisk-recovery.cpio
+		minigzip < ramdisk-recovery.cpio > ramdisk-recovery.img
 		if [ -f boot.img ] ; then
-			echo "removing old boot.img"
-			rm -f boot.img
+			echo "Deleting old boot.img"
+			rm -f $target_dir/boot.img
 		fi
-		echo -e "${txtblu} Creating boot.img"
-		./tools/mkshbootimg.py boot.img ./arch/arm/boot/zImage ramdisk.img
-		echo -e "${txtblu} Cleaning up temp files:"
-		rm -f ramdisk.img
-		echo -e "${txtblu} Done!"
-		return 0
+		echo "Creating boot.img"
+		./mkshbootimg.py $target_dir/boot.img $KERNEL_PATH ramdisk-kernel.img ramdisk-recovery.img
+		echo "Cleaning up temp files:"
+		echo "* rm -f ramdisk-kernel.img"
+		rm -f ramdisk-kernel.img
+		echo "* rm -f ramdisk-recovery.cpio"
+		rm -f ramdisk-recovery.cpio
+		echo "* rm -f ramdisk-recovery.img"
+		rm -f ramdisk-recovery.img
 	fi
+	return 0
 }
 
-if [ "$3" = "boot.img" ] ; then
-# Main
-if [ ! "$1" = "" ] ; then
-PACKAGE_BOOTIMG "$KERNEL_PATH" "$KERNEL_INITRD_DIR"
+PACKAGE_BOOTIMG "$KERNEL_PATH" "$KERNEL_INITRD" "$RECOVERY_INITRD"
 if [ $? != 0 ] ; then
-	echo -e "${txtred} $ERROR_MSG"
+	echo "$ERROR_MSG"
 else
-	echo -e "${txtblu} Boot.img created successfully...${txtrst}"
+	echo "boot.img created successfully"
 fi
-fi
-fi
+exit
 
-# move it back just in case
-mv DONOTLOOKATME $KERNEL_INITRD_DIR/.git
+cp $target_dir/boot.img $ANDROID_BUILD_TOP//out/target/product/galaxytab/
 
-# The end!
 END=$(date +%s)
 ELAPSED=$((END - START))
 E_MIN=$((ELAPSED / 60))

@@ -21,7 +21,6 @@ echo -e "\r\n ${txtrst}"
 START=$(date +%s)
 DEVICE="$1"
 BUILDTYPE="$2"
-KERNELTYPE="$3"
 THREADS=`cat /proc/cpuinfo | grep processor | wc -l`
 
 case "$DEVICE" in
@@ -32,16 +31,16 @@ case "$DEVICE" in
 		exit
 		;;
 	p1|P1)
-		TARGET=P1
+		P1_targetT=P1
 		;;
 	p1c|P1C)
-		TARGET=P1C
+		P1_target=P1C
 		;;
 	p1l|P1L)
-		TARGET=P1L
+		P1_target=P1L
 		;;
 	p1n|P1N)
-		TARGET=P1N
+		P1_target=P1N
 		;;
 	*)
 		echo -e "${txtred}Usage: $0 device"
@@ -67,18 +66,8 @@ case "$BUILDTYPE" in
 		echo -e "Supported Buildtypes : eng userdebug user${txtrst}"
 esac
 
-case "$KERNELTYPE" in
-	boot.img)
-		BOOTIMG=boot.img
-		;;
-	*)
-		echo -e "${txtred} Choose a kernel type"
-		echo -e "Default : zImage"
-		echo -e "Supported Kernelstypes : boot.img (With 2-stage-init)${txtrst}"
-esac
-
 if [ "$1" = "" ] ; then
-TARGET=p1
+P1_target=p1
 fi
 
 if [ "$2" = "" ] ; then
@@ -100,12 +89,15 @@ fi
 . build/envsetup.sh
 lunch $LUNCH
 
+# Android build
+make -j$THREADS
+
 # Kernel build
 cd kernel/samsung/p1
-./build.sh $TARGET $BOOTIMG
+./build.sh P1_target
 cd ../../..
 
-# Android build
+# Bacon (OTAPackage)
 make -j$THREADS bacon
 
 END=$(date +%s)
