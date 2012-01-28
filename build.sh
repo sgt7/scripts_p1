@@ -89,15 +89,12 @@ fi
 . build/envsetup.sh
 lunch $LUNCH
 
-# Android build
-make -j$THREADS
-
 # Kernel build
 cd kernel/samsung/p1
-./build.sh P1_target
+./build.sh ${P1_target}
 cd ../../..
 
-# Bacon (OTAPackage)
+# Android build
 make -j$THREADS bacon
 
 END=$(date +%s)
