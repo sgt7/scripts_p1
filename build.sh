@@ -17,8 +17,35 @@ echo -e "${txtblu}#                                        #"
 echo -e "${txtblu}##########################################"
 echo -e "\r\n ${txtrst}"
 
-BUILDTYPE="$1"
+DEVICE=$1
+BUILDTYPE="$2"
 THREADS=`cat /proc/cpuinfo | grep processor | wc -l`
+
+case $DEVICE in
+	clean)
+		make clean
+		cd kernel/samsung/p1
+		./build.sh clean
+		exit
+		;;
+	p1|P1)
+		P1_TARGET=p1
+		;;
+	p1c|P1C)
+		P1_TARGET=p1c
+		;;
+	p1L|P1l)
+		P1_TARGET=p1l
+		;;
+	p1n|P1N)
+		P1_TARGET=p1n
+		;;
+	*)
+		echo -e "${txtred} Choose a Device"
+		echo -e "Default : p1"
+		echo -e "Supported Buildtypes : p1 p1c p1l p1n${txtrst}"
+		;;
+esac
 
 case "$BUILDTYPE" in
 	clean)
@@ -38,13 +65,17 @@ case "$BUILDTYPE" in
 		;;
 	*)
 		echo -e "${txtred} Choose a build type"
-		echo -e "Default : userdebug"
+		echo -e "Default : eng"
 		echo -e "Supported Buildtypes : eng userdebug user${txtrst}"
 		;;
 esac
 
 if [ "$1" = "" ] ; then
-LUNCH=cm_galaxytab-userdebug
+P1_TARGET=p1
+fi
+
+if [ "$2" = "" ] ; then
+LUNCH=cm_galaxytab-eng
 fi
 
 # Check for Prebuilts
@@ -59,6 +90,7 @@ else
 fi
 
 START=$(date +%s)
+
 # Setup build environment and start the build
 . build/envsetup.sh
 lunch $LUNCH
@@ -67,6 +99,7 @@ lunch $LUNCH
 cd kernel/samsung/p1
 ./build.sh 
 cd ../../..
+cp $ANDROID_BUILD_TOP/device/samsung/galaxytab/kernel-$P1_TARGET $ANDROID_BUILD_TOP/device/samsung/galaxytab/kernel
 
 # Android build
 make -j$THREADS bacon
