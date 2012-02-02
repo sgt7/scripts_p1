@@ -97,7 +97,7 @@ lunch $LUNCH
 
 # Kernel build
 cd kernel/samsung/p1
-./build.sh 
+./build.sh $P1_TARGET
 cd ../../..
 cp $ANDROID_BUILD_TOP/device/samsung/galaxytab/kernel-$P1_TARGET $ANDROID_BUILD_TOP/device/samsung/galaxytab/kernel
 
