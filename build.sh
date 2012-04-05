@@ -37,6 +37,7 @@ case "$1" in
   kernel)
       cd $KERNELDIR
       ./build.sh $DEVICE
+      # fixme: the following line can be removed once kernel/samsung/p1/build.sh is fixed
       mv $DEVICEDIR/kernel-$DEVICE $DEVICEDIR/kernel
       ;;
   system)
