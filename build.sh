@@ -19,7 +19,6 @@ done
 
 KERNELDIR="$ANDROID_BUILD_TOP/kernel/samsung/p1"
 DEVICEDIR="$ANDROID_BUILD_TOP/device/samsung/$DEVICE"
-CROSSCOMPILE="$ANDROID_BUILD_TOP/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-"
 
 # --------------------------------------------
 
@@ -33,7 +32,7 @@ case "$1" in
   clean)
       make clean
       cd $KERNELDIR
-      make mrproper CROSS_COMPILE=$CROSSCOMPILE
+      make mrproper
       ;;
   kernel)
       cd $KERNELDIR
