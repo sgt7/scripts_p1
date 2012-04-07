@@ -17,9 +17,8 @@ done
 
 # --------------------------------------------
 
-source build/envsetup.sh
-KERNELDIR="$ANDROID_BUILD_TOP/kernel/samsung/p1"
-DEVICEDIR="$ANDROID_BUILD_TOP/device/samsung/$DEVICE"
+KERNELDIR="kernel/samsung/p1"
+DEVICEDIR="device/samsung/$DEVICE"
 
 # --------------------------------------------
 
