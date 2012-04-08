@@ -5,6 +5,12 @@ for i in p1 p1c; do
   [ "$2" == "$i" ] && DEVICE="$i"
 done
 
+# these devices currently use the P1 system tree, but have their own kernel
+KERNEL_DEVICE=$DEVICE
+for i in p1l p1n; do
+  [ "$2" == "$i" ] && KERNEL_DEVICE="$i"
+done
+
 # VARIANT 	use
 # user 		limited access; suited for production
 # userdebug 	like "user" but with root access and debuggability; preferred for debugging
@@ -30,13 +36,18 @@ case "$1" in
       repo forall -c 'git clean -xdf'
       ;&
   clean)
-      make clean
+      make clobber
       cd $KERNELDIR
       make mrproper
       ;;
   kernel)
-      cd $KERNELDIR
-      ./build.sh $DEVICE
+      time (
+        cd $KERNELDIR
+        make ARCH=arm "$KERNEL_DEVICE"_cm9_defconfig
+        make -j$THREADS
+      )
+      cp $KERNELDIR/arch/arm/boot/zImage $DEVICEDIR/kernel
+      find $KERNELDIR -name '*.ko' | xargs -i cp {} $DEVICEDIR/modules
       ;;
   system)
       time {
@@ -51,7 +62,7 @@ case "$1" in
       echo "usage: ${0##*/} <action> [ <device> ] [ <build-variant> ]"
       echo
       echo "  <action> : clean|distclean|kernel|system"
-      echo "  <device> : p1|p1c               default=$DEVICE"
+      echo "  <device> : p1|p1c|p1l|p1n       default=$DEVICE"
       echo "  <variant>: user|userdebug|eng   default=$VARIANT"
 
 esac
