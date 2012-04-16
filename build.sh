@@ -47,6 +47,7 @@ case "$1" in
         make ARCH=arm p1_defconfig
         else
         make ARCH=arm "$KERNEL_DEVICE"_cm9_defconfig
+        fi
         make -j$THREADS
       )
       cp $KERNELDIR/arch/arm/boot/zImage $DEVICEDIR/kernel
