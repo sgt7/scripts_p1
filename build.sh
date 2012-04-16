@@ -23,7 +23,7 @@ done
 
 # --------------------------------------------
 
-KERNELDIR="kernel/samsung/p1"
+KERNELDIR="kernel/samsung/$DEVICE"
 DEVICEDIR="device/samsung/$DEVICE"
 
 # --------------------------------------------
@@ -43,6 +43,9 @@ case "$1" in
   kernel)
       time (
         cd $KERNELDIR
+        if "$DEVICE" = "p1c" ; then
+        make ARCH=arm p1_defconfig
+        else
         make ARCH=arm "$KERNEL_DEVICE"_cm9_defconfig
         make -j$THREADS
       )
