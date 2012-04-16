@@ -23,7 +23,7 @@ done
 
 # --------------------------------------------
 
-KERNELDIR="kernel/samsung/$DEVICE"
+KERNELDIR="kernel/samsung/$KERNEL_DEVICE"
 DEVICEDIR="device/samsung/$DEVICE"
 
 # --------------------------------------------
