@@ -43,7 +43,7 @@ case "$1" in
   kernel)
       time (
         cd $KERNELDIR
-        if "$DEVICE" = "p1c" ; then
+        if [ "$DEVICE" = "p1c" ]; then
         make ARCH=arm p1_defconfig
         else
         make ARCH=arm "$KERNEL_DEVICE"_cm9_defconfig
