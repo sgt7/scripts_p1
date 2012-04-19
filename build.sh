@@ -1,14 +1,10 @@
 #!/bin/bash
 
+# default
 DEVICE=p1
-for i in p1 p1c; do
-  [ "$2" == "$i" ] && DEVICE="$i"
-done
-
-# these devices currently use the P1 system tree, but have their own kernel
-KERNEL_DEVICE=$DEVICE
-for i in p1l p1n; do
-  [ "$2" == "$i" ] && KERNEL_DEVICE="$i"
+# alternatives
+for i in p1 p1c p1l p1n; do
+  [ "$1" == "$i" ] && DEVICE="$i"
 done
 
 # VARIANT 	use
@@ -16,15 +12,24 @@ done
 # userdebug 	like "user" but with root access and debuggability; preferred for debugging
 # eng		development configuration with additional debugging tools
 
+# default
 VARIANT=userdebug
+# alternatives
 for i in user userdebug eng; do
-  [ "$3" == "$i" ] && VARIANT="$i"
+  [ "$2" == "$i" ] && VARIANT="$i"
 done
 
 # --------------------------------------------
 
-KERNELDIR="kernel/samsung/$KERNEL_DEVICE"
-DEVICEDIR="device/samsung/$DEVICE"
+# default
+TARGET="cm_$DEVICE-$VARIANT"
+
+# exceptions
+case "$DEVICE" in
+  p1l|p1n)
+      TARGET="cm_p1-$VARIANT"
+      OTHER="TARGET_KERNEL_CONFIG=cyanogenmod_"$DEVICE"_defconfig"
+esac
 
 # --------------------------------------------
 
@@ -37,36 +42,25 @@ case "$1" in
       ;&
   clean)
       make clobber
-      cd $KERNELDIR
-      make mrproper
+      ( cd kernel/samsung/p1  ; make mrproper )
+      ( cd kernel/samsung/p1c ; make mrproper )
       ;;
-  kernel)
-      time (
-        cd $KERNELDIR
-        if [ "$DEVICE" = "p1c" ]; then
-        make ARCH=arm p1_defconfig
-        else
-        make ARCH=arm "$KERNEL_DEVICE"_cm9_defconfig
-        fi
-        make -j$THREADS
-      )
-      cp $KERNELDIR/arch/arm/boot/zImage $DEVICEDIR/kernel
-      find $KERNELDIR -name '*.ko' | xargs -i cp {} $DEVICEDIR/modules
-      ;;
-  system)
+  $DEVICE|"")
       time {
         source build/envsetup.sh
         [ ! -d vendor/cm/proprietary ] && ( cd vendor/cm ; ./get-prebuilts )
-        lunch "cm_"$DEVICE"-"$VARIANT
-        make -j$THREADS bacon
+        lunch "$TARGET"
+        make -j$THREADS bacon $OTHER
       }
       ;;
   *)
       echo
-      echo "usage: ${0##*/} <action> [ <device> ] [ <build-variant> ]"
+      echo "usage:" 
+      echo "       ${0##*/} [ <action> ]"
+      echo "       ${0##*/} [ <device> ] [ <build-variant> ]"
       echo
-      echo "  <action> : clean|distclean|kernel|system"
+      echo "  <action> : clean|distclean|help"
       echo "  <device> : p1|p1c|p1l|p1n       default=$DEVICE"
       echo "  <variant>: user|userdebug|eng   default=$VARIANT"
-
+      ;;
 esac
