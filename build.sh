@@ -24,13 +24,6 @@ done
 # default
 TARGET="cm_$DEVICE-$VARIANT"
 
-# exceptions
-case "$DEVICE" in
-  p1l|p1n)
-      TARGET="cm_p1-$VARIANT"
-      OTHER="TARGET_KERNEL_CONFIG=cyanogenmod_"$DEVICE"_defconfig"
-esac
-
 # --------------------------------------------
 
 THREADS=$(grep processor /proc/cpuinfo | wc -l)
